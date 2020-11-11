@@ -3,9 +3,9 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blog/authentication_page.dart';
 import 'package:flutter_blog/blogs.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 import 'add_blog_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -16,29 +16,29 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
 
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-  List<Blogs> blogsData = [];
 
-  Future _getBlogData() async {
-    DatabaseReference reference = await FirebaseDatabase.instance.reference();
-    reference.child("Blogs").once().then((DataSnapshot snapshot){
-      var keys = snapshot.value.keys;
-      var data = snapshot.value;
-
-      blogsData.clear();
-
-      for (var singleKey in keys) {
-        Blogs blogModel = Blogs(
-          image: data[singleKey]["image"],
-          title: data[singleKey]["title"],
-          desc: data[singleKey]["desc"],
-        );
-        setState(() {
+  Future<List<Blogs>> _getBlogData() async {
+    List<Blogs> blogsData = [];
+    DatabaseReference reference = FirebaseDatabase.instance.reference();
+    await reference.child("Blogs").once().then((DataSnapshot snapshot){
+      if(snapshot.value != null) {
+        var keys = snapshot.value.keys;
+        var data = snapshot.value;
+        blogsData.clear();
+        for (var singleKey in keys) {
+          Blogs blogModel = Blogs(
+            image: data[singleKey]["image"],
+            title: data[singleKey]["title"],
+            desc: data[singleKey]["desc"],
+          );
           blogsData.add(blogModel);
-          blogsData.reversed;
-        });
-        reference.keepSynced(true);
+          blogsData.reversed.toList();
+        }
+      } else {
+        Fluttertoast.showToast(msg: 'No Posts Available', toastLength: Toast.LENGTH_LONG);
       }
     });
+    return blogsData;
   }
 
   @override
@@ -78,12 +78,35 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             Expanded(
-              child: blogsData == null ? Center(child: CircularProgressIndicator()) : ListView.builder(
-                itemCount: blogsData.length,
-                physics: BouncingScrollPhysics(),
-                padding: EdgeInsets.symmetric(vertical: 15.0),
-                itemBuilder: (context, index) {
-                  return SingleItem(image: blogsData[index].image, title: blogsData[index].title, description: blogsData[index].desc);
+              child:
+              FutureBuilder<List<Blogs>>(
+                future: _getBlogData(),
+                builder: (context, snapshot) {
+                  if(snapshot.hasData) {
+                    return ListView.builder(
+                      itemCount: snapshot.data.length,
+                      physics: BouncingScrollPhysics(),
+                      reverse: true,
+                      padding: EdgeInsets.symmetric(vertical: 15.0),
+                      itemBuilder: (context, index) {
+                        return SingleItem(image: snapshot.data[index].image,
+                            title: snapshot.data[index].title,
+                            description: snapshot.data[index].desc);
+                      },
+                    );
+                  }
+                  if(snapshot.hasError) {
+                    return Center(
+                      child: Text('No Blog Posted Yet!', style: TextStyle(color: Colors.white)),
+                    );
+                  }
+                  return Center(
+                    child: Container(
+                        height: 50.0,
+                        width: 50.0,
+                        child: CircularProgressIndicator()
+                    ),
+                  );
                 },
               ),
             ),
@@ -129,8 +152,8 @@ class SingleItem extends StatelessWidget {
                     filterQuality: FilterQuality.high,
                     width: MediaQuery.of(context).size.width,
                     fit: BoxFit.cover,
-                    color: Colors.black45,
-                    colorBlendMode: BlendMode.darken,
+                    // color: Colors.black45,
+                    // colorBlendMode: BlendMode.darken,
                   ),
                 ),
                 Align(

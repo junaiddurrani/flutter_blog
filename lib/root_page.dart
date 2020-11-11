@@ -3,27 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blog/authentication_page.dart';
 import 'package:flutter_blog/home_page.dart';
 
-import 'splash_screen.dart';
-
 class RootPage extends StatefulWidget {
   @override
   _RootPageState createState() => _RootPageState();
 }
 
-enum AuthStatus {
-  LoggedIn,
-  NotLoggedIn,
-  NotDetermined
-}
+enum AuthStatus { LoggedIn, NotLoggedIn, NotDetermined }
 
 class _RootPageState extends State<RootPage> {
-
   AuthStatus _authStatus = AuthStatus.NotDetermined;
 
   Future _checkAuthStatus() async {
     final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
     User user = _firebaseAuth.currentUser;
-    if(user == null) {
+    if (user == null) {
       setState(() {
         _authStatus = AuthStatus.NotLoggedIn;
       });
@@ -42,13 +35,22 @@ class _RootPageState extends State<RootPage> {
 
   @override
   Widget build(BuildContext context) {
-    switch(_authStatus){
+    switch (_authStatus) {
       case AuthStatus.NotLoggedIn:
         return AuthenticationPage();
       case AuthStatus.LoggedIn:
         return HomePage();
-        default:
-          return SplashScreen();
+      default:
+        return splashScreen();
     }
+  }
+
+  Widget splashScreen() {
+    return Scaffold(
+      body: Center(
+        child: Container(
+            height: 50.0, width: 50.0, child: CircularProgressIndicator()),
+      ),
+    );
   }
 }
